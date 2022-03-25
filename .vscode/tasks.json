@@ -1,0 +1,100 @@
+// Window
+// {
+//     "version": "2.0.0",
+//     "tasks": [
+//         {
+//             "label": "build with OpenGL (Window)",
+//             "type": "shell",
+//             "command": "gcc",
+//             "args": [
+//                 "${file}",
+//                 "-o",
+//                 "executeFile/${fileBasenameNoExtension}.exe",
+//                 "-lopengl32",
+//                 "-lglu32",
+//                 "-lfreeglut"
+//             ],
+//             "group": {
+//                 "kind": "build",
+//                 "isDefault": true
+//             }
+//         },
+//         {
+//             "label": "build with OpenGL (Linux)",
+//             "type": "shell",
+//             "command": "gcc",
+//             "args": [
+                // "${file}",
+                // "-o",
+                // "executeFile/${fileBasenameNoExtension}",
+                // "-lglut",
+                // "-lGLU",
+                // "-lGL",
+                // "-lm"
+//             ],
+//             "group": {
+//                 "kind": "build",
+//                 "isDefault": true
+//             }
+//         }
+//     ]
+// }
+
+//Linux
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build with OpenGL",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "windows": {
+                "command": "gcc",
+                "args": [
+                    "${file}",
+                    "-o",
+                    ".output/Window/${relativeFileDirname}_${fileBasenameNoExtension}.exe",
+                    "-lopengl32",
+                    "-lglu32",
+                    "-lfreeglut"
+                ]
+            },
+            "linux": {
+                "command": "gcc",
+                "args": [
+                    "${file}",
+                    "-o",
+                    ".output/Linux/${relativeFileDirname}_${fileBasenameNoExtension}.out",
+                    "-lglut",
+                    "-lGLU",
+                    "-lGL",
+                    "-lm"
+                ]
+            },
+            "osx": {
+                "command": "gcc",
+                "args": [
+                    "-g",
+                    "${file}",
+                    "-o",
+                    ".output/Mac/${relativeFileDirname}_${fileBasenameNoExtension}.out",
+                    "-framework",
+                    "OpenGL",
+                    "-framework",
+                    "GLUT"
+                ]
+            }
+        }
+    ]
+}
