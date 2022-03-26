@@ -1,6 +1,6 @@
 {
     "files.associations": {
         "math.h": "c",
-        "glut.h": "c"
+        "glut.h": "c",
     }
 }

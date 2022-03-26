@@ -15,7 +15,7 @@ echo "Running \m"
 gcc -c -o main.o main.cpp -I\"C:/Compiler/mingw64/x86_64-w64-mingw32/include\"
 cls
 echo "Compiling Graphic"
-gcc -o main.exe  main.o -L\"C:/Compiler/mingw64/x86_64-w64-mingw32/lib -lopengl32 -lglu32 -lfreeglut
+gcc -o main.exe  main.o -L\"C:/Compiler/mingw64/x86_64-w64-mingw32/lib -lopengl32 -lglu32 -lfreeglut -lWinmm
 rm main.o
 cls
 echo "App Running"

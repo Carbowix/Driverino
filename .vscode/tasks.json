@@ -62,12 +62,13 @@
             "windows": {
                 "command": "gcc",
                 "args": [
-                    "${file}",
+                    "main.cpp",
                     "-o",
                     ".output/Window/${relativeFileDirname}_${fileBasenameNoExtension}.exe",
                     "-lopengl32",
                     "-lglu32",
-                    "-lfreeglut"
+                    "-lfreeglut",
+                    "-lwinmm"
                 ]
             },
             "linux": {
