@@ -1,7 +1,15 @@
 #include <gl/gl.h>
+
 #include <gl/glut.h>
+
 #include <windows.h>
+
+#include <string>
+
 #include <mmsystem.h>
+
+using namespace std;
+
 #pragma comment(lib, "Winmm.lib")
 
 enum gameState {
@@ -15,11 +23,11 @@ void * font2 = GLUT_BITMAP_HELVETICA_18;
 void * font3 = GLUT_BITMAP_9_BY_15;
 const char * GameTitle = "Cargasm";
 gameState currentState = GAME_MENU;
-int FPS = 50;
+int FPS = 60;
 int SCREEN_WIDTH = 800;
 int SCREEN_HEIGHT = 600;
 int currentWindow;
-
+float moveOffsetX = 0;
 void renderBitmapString(float x, float y, void * font,
     const char * string) {
     const char * c;
@@ -29,8 +37,20 @@ void renderBitmapString(float x, float y, void * font,
     }
 };
 
-void tree(int x, int y) {
-    // Pine tree wood
+bool collision(float x1, float y1, float w1, float h1,
+    float x2, float y2, float w2, float h2) {
+    if ((x1 < (x2 + w2)) &&
+        ((x1 + w1) > x2) &&
+        (y1 < (y2 + h2)) &&
+        ((h1 + y1) > y2)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void renderTree(int x, int y) {
+    // Pine renderTree wood
     glBegin(GL_POLYGON);
     glColor3f(0.145, 0.0824, 0.0431);
     glVertex2d(x + 11, y + 45);
@@ -51,6 +71,56 @@ void tree(int x, int y) {
     glVertex2f(x + 12, y + 57);
     glVertex2f(x + 9, y + 50);
     glVertex2f(x + 15, y + 50);
+    glEnd();
+}
+
+void renderCar(float x, float y, int inverted) {
+    // Car body
+    glBegin(GL_POLYGON);
+    glColor3f(0.0, 0.0, 0.0);
+    // Front lamps body coverage
+    glVertex2f(x + (2.5 + 1), y + (inverted * 6));
+    // Back lamp body coverage (3.5 * 2, 6.5 * 2)
+    glVertex2f(x + (2.5 + 1), y - (inverted * 6.5));
+    glVertex2f(x - (2.5 + 1), y - (inverted * 6.5));
+    // Front lamps body coverage
+    glVertex2f(x - (2.5 + 1), y + (inverted * 6));
+    glEnd();
+    // car front LAMPs (OffsetY from center = 4.25px, OffsetX between 2 lamps = 2.5px, height of lamp: 1.5 px, width: 1px)
+    // Left lamp
+    glBegin(GL_POLYGON);
+    glColor3f(1.0, 1.0, 0.0); // Set The Color To Yellow
+    glVertex2f(x - 1.5, y + (inverted * 5));
+    glVertex2f(x - 2.5, y + (inverted * 5));
+    glVertex2f(x - 2.5, y + (inverted * 3.5));
+    glVertex2f(x - 1.5, y + (inverted * 3.5));
+    glEnd();
+
+    // Right Lamp
+    glBegin(GL_POLYGON);
+    glColor3f(1.0, 1.0, 0.0); // Set The Color To Yellow
+    glVertex2f(x + 1.5, y + (inverted * 5));
+    glVertex2f(x + 2.5, y + (inverted * 5));
+    glVertex2f(x + 2.5, y + (inverted * 3.5));
+    glVertex2f(x + 1.5, y + (inverted * 3.5));
+    glEnd();
+
+    // car brakes lamp (offsetY from center: 5px, height of lamp: 1px, width: 5px)
+    glBegin(GL_POLYGON);
+    glColor3f(1.0, 0.0, 0.0);
+    glVertex2f(x + 2.5, y - (inverted * 5));
+    glVertex2f(x + 2.5, y - (inverted * 6));
+    glVertex2f(x - 2.5, y - (inverted * 6));
+    glVertex2f(x - 2.5, y - (inverted * 5));
+    glEnd();
+
+    // front window shield
+    glBegin(GL_POLYGON);
+    glColor3f(0.5, 0.5, 0.4);
+    glVertex2d(x - 2, y + (inverted * 2.5));
+    glVertex2d(x + 2, y + (inverted * 2.5));
+    glVertex2d(x + 2, y + (inverted * 0.1));
+    glVertex2d(x - 2, y + (inverted * 0.1));
     glEnd();
 }
 
@@ -125,13 +195,13 @@ void menuDesign(void) {
     glEnd();
 
     // Trees LEFT/RIGHT
-    tree(0, -5);
-    tree(0, -25);
-    tree(15, -10);
+    renderTree(0, -5);
+    renderTree(0, -25);
+    renderTree(15, -10);
 
-    tree(80, -5);
-    tree(82, -25);
-    tree(65, -10);
+    renderTree(80, -5);
+    renderTree(82, -25);
+    renderTree(65, -10);
 
     // Title 
     glColor3f(1.000, 1.000, 0.000);
@@ -145,11 +215,22 @@ void menuDesign(void) {
 }
 
 
-int top_lane = 0, mid_lane = 0, bot_lane = 0;
+int top_lane = 0, mid_lane = 0, bot_lane = 0, score = 0;
+float left_lane[3] = {0, 0, 0}, right_lane[2] = {0, 0};
+const float carWidth = 3.5 * 2, carHeight = 6.5 * 2;
+bool fading = false;
+
+void endGame() {
+    PlaySound((LPCTSTR)"assets//sound//lost.wav", NULL, SND_ASYNC | SND_FILENAME);
+    currentState = GAME_END;
+    fading = true;
+}
+
 void gameDesign(void) {
     // Ground-Design
     // Grass
     glClearColor(0.000, 0.392, 0.000, 1);
+
     // Road Asphalt
     glBegin(GL_POLYGON);
     glColor3f(0.165, 0.161, 0.133);
@@ -186,7 +267,7 @@ void gameDesign(void) {
     glVertex2f(52, top_lane + 100);
     glVertex2f(52, top_lane + 80);
     glEnd();
-    top_lane--;
+    top_lane -= 1 + (score * (FPS / 1000) * 0.3); // Random formula that worked (Max range = 6)
     if (top_lane < -100) {
         top_lane = 20;
     }
@@ -199,7 +280,7 @@ void gameDesign(void) {
     glVertex2f(52, mid_lane + 60);
     glVertex2f(52, mid_lane + 40);
     glEnd();
-    mid_lane--;
+    mid_lane -= 1 + (score * (FPS / 1000) * 0.3);
     if (mid_lane < -60) {
         mid_lane = 60;
     }
@@ -212,33 +293,111 @@ void gameDesign(void) {
     glVertex2f(52, bot_lane + 20);
     glVertex2f(52, bot_lane + 0);
     glEnd();
-    bot_lane--;
+    bot_lane -= 1 + (score * (FPS / 1000) * 0.3);
     if (bot_lane < -20) {
         bot_lane = 100;
     }
 
     // left-side trees
-    tree(-2, top_lane + 40);
-    tree(-2, mid_lane + 0);
-    tree(-2, bot_lane + -40);
+    renderTree(-2, top_lane + 40);
+    renderTree(-2, mid_lane + 0);
+    renderTree(-2, bot_lane + -40);
 
     // right-side trees
-    tree(79, top_lane + 40);
-    tree(79, mid_lane + 0);
-    tree(79, bot_lane + -40);
+    renderTree(79, top_lane + 40);
+    renderTree(79, mid_lane + 0);
+    renderTree(79, bot_lane + -40);
+
+    // cars simulator
+    // Main Car
+    renderCar(65 + moveOffsetX, 15, 1);
+    // Traffic Cars
+    // Start SP.Y = 110
+    // Middle SP.Y = 50 
+    // END SP.Y = -10
+    renderCar(35, 110 - left_lane[0], -1);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 35, 110 - left_lane[0], carWidth, carHeight)) {
+        endGame();
+    }
+    left_lane[0] += 1;
+    if (left_lane[0] >= 120 + 50) {
+        left_lane[0] = 0;
+        score += 1;
+    }
+    // Duo
+    renderCar(42, 160 - left_lane[1], -1);
+    renderCar(25, 160 - left_lane[1], -1);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 42, 160 - left_lane[1], carWidth, carHeight) ||
+        collision(65 + moveOffsetX, 15, carWidth, carHeight, 25, 160 - left_lane[1], carWidth, carHeight)
+     ) {
+        endGame();
+    }
+    left_lane[1] += 1;
+    if (left_lane[1] >= 170 + 50) {
+        left_lane[1] = 0;
+        score += 1;
+    }
+    // Solo
+    renderCar(42, 210 - left_lane[2], -1);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 42, 210 - left_lane[2], carWidth, carHeight)) {
+        endGame();
+    }
+    left_lane[2] += 1;
+    if (left_lane[2] >= 220 + 50) {
+        left_lane[2] = 0;
+        score +=1;
+    }
+
+    // Left_lane 
+    renderCar(65, 130 - right_lane[0], 1);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 65, 130 - right_lane[0], carWidth, carHeight)) {
+        endGame();
+    }
+    right_lane[0] += 1;
+    if (right_lane[0] >= 150 + 50) {
+        left_lane[0] = 0;
+        score += 1;
+    }
+    renderCar(60, 170 - right_lane[1], 1);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 60, 170 - right_lane[1], carWidth, carHeight)) {
+        endGame();
+    }
+    right_lane[1] += 1;
+    if (right_lane[1] >= 220) {
+        right_lane[1] = 0;
+        score += 1;
+    }
+
+    // Car size: 3.5 * 2, 6.5 * 2 (W, H)
+    // Collision check car 1, 2
+    
+    // glColor3f(0, 1, 0);
+    // renderBitmapString(46, 80, font1, std::to_string(FPS).c_str());
 }
-bool fading = false;
+
+void lostDesign() {
+    glClearColor(0, 0, 0, 1);
+    glColor3f(1.000, 0, 0);
+    renderBitmapString(45, 80, font1, "GAME OVER");
+    glColor3f(0, 1, 0);
+    renderBitmapString(35, 75, font1, "PRESS F TO PAY RESPECTS");
+}
+
+
 void render() {
     glClear(GL_COLOR_BUFFER_BIT);
     if (fading) {
-        GLfloat colors[4];
+        float colors[4];
         glGetFloatv(GL_COLOR_CLEAR_VALUE, colors);
         if (colors[0] > 0.0 || colors[1] > 0 || colors[2] > 0) {
             glClearColor(colors[0] - 0.1, colors[1] - 0.1, colors[2] - 0.1, colors[4] - 0.1);
         } else {
             fading = false;
             Sleep(2000);
-            PlaySound((LPCTSTR)"assets//sound//ingame.wav", NULL, SND_ASYNC|SND_FILENAME|SND_LOOP);
+            if (currentState == GAME_ACTIVE) {
+            PlaySound((LPCTSTR)
+                "assets//sound//ingame.wav", NULL, SND_ASYNC | SND_FILENAME | SND_LOOP);
+            }
         }
     } else {
         switch (currentState) {
@@ -246,10 +405,11 @@ void render() {
                 menuDesign();
                 break;
             case GAME_ACTIVE:
-                glClearColor(1, 1, 1, 1);   
+                glClearColor(1, 1, 1, 1);
                 gameDesign();
                 break;
             default:
+                lostDesign();
                 break;
         };
     }
@@ -257,15 +417,56 @@ void render() {
     glutSwapBuffers();
 };
 
+
 void gameControls(unsigned char key, int x, int y) {
     switch (key) {
+        case 27: // ESC
+            if (currentState == GAME_MENU) {
+                exit(0);
+            }
+            break;
         case ' ':
             if (currentState == GAME_MENU) {
-                PlaySound((LPCTSTR)"assets//sound//start.wav", NULL, SND_ASYNC|SND_FILENAME);
+                PlaySound((LPCTSTR)
+                    "assets//sound//start.wav", NULL, SND_ASYNC | SND_FILENAME);
                 fading = true;
                 currentState = GAME_ACTIVE;
             }
             break;
+        case 'A':
+        case 'a':
+            if (currentState == GAME_ACTIVE) {
+                if (moveOffsetX > -40.4) {
+                    moveOffsetX -= 1;
+                }
+            }
+            break;
+        case 'D':
+        case 'd':
+            if (currentState == GAME_ACTIVE) {
+                if (moveOffsetX < 10.4) {
+                    moveOffsetX += 1;
+                }
+            }
+            break;
+        case 'W':
+        case 'w':
+            if (currentState == GAME_ACTIVE) {
+                FPS += 1;
+            }
+            break;
+        case 'S':
+        case 's':
+            if (currentState == GAME_ACTIVE) {
+                FPS -= 1;
+            }
+            break;
+        case 'F':
+        case 'f':
+            if (currentState == GAME_END) {
+                currentState = GAME_MENU;
+                PlaySound((LPCTSTR)"assets//sound//menu.wav", NULL, SND_ASYNC|SND_FILENAME|SND_LOOP);
+            }
     }
 }
 
@@ -282,7 +483,6 @@ int main(int argc, char ** argv) {
     currentWindow = glutCreateWindow(GameTitle);
     PlaySound((LPCTSTR)"assets//sound//menu.wav", NULL, SND_ASYNC|SND_FILENAME|SND_LOOP);
     glOrtho(0, 100, 0, 100, -1, 1); // glOrtho(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar)
-    // glClearColor(0.184, 0.310, 0.310, 1); // Dark Green.
     glutDisplayFunc(render);
     glutKeyboardFunc(gameControls);
     glutTimerFunc(1000, timer, 0);
