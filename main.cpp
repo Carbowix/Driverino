@@ -21,13 +21,18 @@ enum gameState {
 void * font1 = GLUT_BITMAP_TIMES_ROMAN_24;
 void * font2 = GLUT_BITMAP_HELVETICA_18;
 void * font3 = GLUT_BITMAP_9_BY_15;
-const char * GameTitle = "Cargasm";
+const char * GameTitle = "Road Rash";
 gameState currentState = GAME_MENU;
 int FPS = 60;
 int SCREEN_WIDTH = 800;
 int SCREEN_HEIGHT = 600;
 int currentWindow;
-float moveOffsetX = 0;
+
+float randomColor (float rgb[3]) {
+    for (int i = 0; i < 3; i++) 
+        rgb[i] = (float)((rand() % 256) * 1) / (float)255;
+}
+
 void renderBitmapString(float x, float y, void * font,
     const char * string) {
     const char * c;
@@ -74,10 +79,10 @@ void renderTree(int x, int y) {
     glEnd();
 }
 
-void renderCar(float x, float y, int inverted) {
+void renderCar(float x, float y, int inverted, float rgb[3]) {
     // Car body
     glBegin(GL_POLYGON);
-    glColor3f(0.0, 0.0, 0.0);
+    glColor3f(rgb[0], rgb[1], rgb[2]);
     // Front lamps body coverage
     glVertex2f(x + (2.5 + 1), y + (inverted * 6));
     // Back lamp body coverage (3.5 * 2, 6.5 * 2)
@@ -205,7 +210,7 @@ void menuDesign(void) {
 
     // Title 
     glColor3f(1.000, 1.000, 0.000);
-    renderBitmapString(46, 80, font1, "CarGASM");
+    renderBitmapString(46, 80, font1, GameTitle);
 
 
     glColor3f(0.000, 1.000, 0.000);
@@ -215,12 +220,15 @@ void menuDesign(void) {
 }
 
 
-int top_lane = 0, mid_lane = 0, bot_lane = 0, score = 0;
-float left_lane[3] = {0, 0, 0}, right_lane[2] = {0, 0};
+float top_lane = 0, mid_lane = 0, bot_lane = 0, score = 0;
+float moveOffsetX = 0, left_lane[3], right_lane[2], colors_left[3][3], colors_right[3][3], carColor[3];
 const float carWidth = 3.5 * 2, carHeight = 6.5 * 2;
 bool fading = false;
 
 void endGame() {
+    top_lane = mid_lane = bot_lane = score = moveOffsetX = 0;
+    memset(left_lane, 0.0, sizeof(left_lane));
+    memset(right_lane, 0.0, sizeof(right_lane));
     PlaySound((LPCTSTR)"assets//sound//lost.wav", NULL, SND_ASYNC | SND_FILENAME);
     currentState = GAME_END;
     fading = true;
@@ -267,7 +275,7 @@ void gameDesign(void) {
     glVertex2f(52, top_lane + 100);
     glVertex2f(52, top_lane + 80);
     glEnd();
-    top_lane -= 1 + (score * (FPS / 1000) * 0.3); // Random formula that worked (Max range = 6)
+    top_lane -= 1.0 + (score * ((float)FPS / 1000.0) * 0.3); // Random formula that worked (Max range = 6)
     if (top_lane < -100) {
         top_lane = 20;
     }
@@ -280,7 +288,7 @@ void gameDesign(void) {
     glVertex2f(52, mid_lane + 60);
     glVertex2f(52, mid_lane + 40);
     glEnd();
-    mid_lane -= 1 + (score * (FPS / 1000) * 0.3);
+    mid_lane -= 1.0 + (score * ((float)FPS / 1000.0) * 0.3);
     if (mid_lane < -60) {
         mid_lane = 60;
     }
@@ -293,7 +301,7 @@ void gameDesign(void) {
     glVertex2f(52, bot_lane + 20);
     glVertex2f(52, bot_lane + 0);
     glEnd();
-    bot_lane -= 1 + (score * (FPS / 1000) * 0.3);
+    bot_lane -= 1.0 + (score * ((float)FPS / 1000.0) * 0.3);
     if (bot_lane < -20) {
         bot_lane = 100;
     }
@@ -310,69 +318,98 @@ void gameDesign(void) {
 
     // cars simulator
     // Main Car
-    renderCar(65 + moveOffsetX, 15, 1);
+    renderCar(65 + moveOffsetX, 15, 1, carColor);
     // Traffic Cars
     // Start SP.Y = 110
     // Middle SP.Y = 50 
     // END SP.Y = -10
-    renderCar(35, 110 - left_lane[0], -1);
-    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 35, 110 - left_lane[0], carWidth, carHeight)) {
+    // Total Cars (left): 3 * 110 = 330
+    // Total Cars (right): 2 * 130 = 220
+
+    // Left road
+    renderCar(35, 100 - left_lane[0], -1, colors_left[0]);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 35, 100 - left_lane[0], carWidth, carHeight)) {
         endGame();
     }
-    left_lane[0] += 1;
-    if (left_lane[0] >= 120 + 50) {
+    left_lane[0] += 1.0 + (score * ((float)FPS / 1000.0) * 0.3);
+    if (left_lane[0] >= 330) { // 120 to reach from (110 -> -10 Y-axis), so 330 to wait for the next cars to reach the end.
         left_lane[0] = 0;
-        score += 1;
+        score++;
+        randomColor(colors_left[0]);
     }
+
     // Duo
-    renderCar(42, 160 - left_lane[1], -1);
-    renderCar(25, 160 - left_lane[1], -1);
-    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 42, 160 - left_lane[1], carWidth, carHeight) ||
-        collision(65 + moveOffsetX, 15, carWidth, carHeight, 25, 160 - left_lane[1], carWidth, carHeight)
+    renderCar(42, 210 - left_lane[1], -1, colors_left[1]);
+    renderCar(25, 210 - left_lane[1], -1, colors_left[1]);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 42, 210 - left_lane[1], carWidth, carHeight) ||
+        collision(65 + moveOffsetX, 15, carWidth, carHeight, 25, 210 - left_lane[1], carWidth, carHeight)
      ) {
         endGame();
     }
-    left_lane[1] += 1;
-    if (left_lane[1] >= 170 + 50) {
+    left_lane[1] += 1.0 + (score * ((float)FPS / 1000.0) * 0.3);
+    if (left_lane[1] >= 330) {
         left_lane[1] = 0;
-        score += 1;
-    }
-    // Solo
-    renderCar(42, 210 - left_lane[2], -1);
-    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 42, 210 - left_lane[2], carWidth, carHeight)) {
-        endGame();
-    }
-    left_lane[2] += 1;
-    if (left_lane[2] >= 220 + 50) {
-        left_lane[2] = 0;
-        score +=1;
+        score++;
+        randomColor(colors_left[1]);
     }
 
-    // Left_lane 
-    renderCar(65, 130 - right_lane[0], 1);
+    // Solo end
+    renderCar(42, 320 - left_lane[2], -1, colors_left[2]);
+    if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 42, 320 - left_lane[2], carWidth, carHeight)) {
+        endGame();
+    }
+    left_lane[2] += 1.0 + (score * ((float)FPS / 1000.0) * 0.3);
+    if (left_lane[2] >= 330) {
+        left_lane[2] = 0;
+        score++;
+        randomColor(colors_left[2]);
+    }
+
+    // Right road
+    renderCar(65, 130 - right_lane[0], 1, colors_right[0]);
     if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 65, 130 - right_lane[0], carWidth, carHeight)) {
         endGame();
     }
-    right_lane[0] += 1;
-    if (right_lane[0] >= 150 + 50) {
-        left_lane[0] = 0;
-        score += 1;
+    right_lane[0] += 1.0 + (score * ((float)FPS / 1000.0) * 0.3);
+    if (right_lane[0] >= (140 + 60)) {
+        right_lane[0] = 0;
+        score++;
+        randomColor(colors_right[0]);
     }
-    renderCar(60, 170 - right_lane[1], 1);
+    renderCar(60, 170 - right_lane[1], 1, colors_right[1]);
     if (collision(65 + moveOffsetX, 15, carWidth, carHeight, 60, 170 - right_lane[1], carWidth, carHeight)) {
         endGame();
     }
-    right_lane[1] += 1;
-    if (right_lane[1] >= 220) {
+    right_lane[1] += 1.0 + (score * ((float)FPS / 1000.0) * 0.3);
+    if (right_lane[1] >= 180 + 120) {
         right_lane[1] = 0;
         score += 1;
+        randomColor(colors_right[1]);
     }
 
-    // Car size: 3.5 * 2, 6.5 * 2 (W, H)
-    // Collision check car 1, 2
+    // Scoreboard
+    glColor3f(0.000, 0.000, 0.000);
+    glBegin(GL_POLYGON);
+    glVertex2f(82, 97);
+    glVertex2f(100, 97);
+    glVertex2f(100, 90);
+    glVertex2f(82, 90);
+    glEnd();
+
+    char scoreBuff[30], speedBuff[30];
+    sprintf(scoreBuff, "SCORE: %d", (int)score);
+    sprintf(speedBuff, "SPEED: %.1f KM/H", (float)FPS + 1.0 + (score * ((float)FPS / 1000.0) * 3));
     
-    // glColor3f(0, 1, 0);
-    // renderBitmapString(46, 80, font1, std::to_string(FPS).c_str());
+    glColor3f(0.000, 1.000, 0.000);
+    renderBitmapString(83, 94,(void *)font3, scoreBuff);
+    glColor3f(0.000, 1.000, 0.000);
+    renderBitmapString(83, 91,(void *)font3, speedBuff);
+    
+    // Debug Speed stuff
+    /*
+    glColor3f(0, 1, 0);
+    renderBitmapString(46, 80, font1, std::to_string(1.0 + (score * ((float)FPS / 1000.0) * 0.4)).c_str());
+    */
 }
 
 void lostDesign() {
@@ -380,7 +417,7 @@ void lostDesign() {
     glColor3f(1.000, 0, 0);
     renderBitmapString(45, 80, font1, "GAME OVER");
     glColor3f(0, 1, 0);
-    renderBitmapString(35, 75, font1, "PRESS F TO PAY RESPECTS");
+    renderBitmapString(34, 75, font1, "PRESS F TO PAY RESPECTS");
 }
 
 
@@ -427,6 +464,7 @@ void gameControls(unsigned char key, int x, int y) {
             break;
         case ' ':
             if (currentState == GAME_MENU) {
+
                 PlaySound((LPCTSTR)
                     "assets//sound//start.wav", NULL, SND_ASYNC | SND_FILENAME);
                 fading = true;
@@ -437,7 +475,7 @@ void gameControls(unsigned char key, int x, int y) {
         case 'a':
             if (currentState == GAME_ACTIVE) {
                 if (moveOffsetX > -40.4) {
-                    moveOffsetX -= 1;
+                    moveOffsetX -= 2;
                 }
             }
             break;
@@ -445,7 +483,7 @@ void gameControls(unsigned char key, int x, int y) {
         case 'd':
             if (currentState == GAME_ACTIVE) {
                 if (moveOffsetX < 10.4) {
-                    moveOffsetX += 1;
+                    moveOffsetX += 2;
                 }
             }
             break;
@@ -476,6 +514,10 @@ void timer(int _) {
 }
 
 int main(int argc, char ** argv) {
+    for (int i = 0; i < 3; i++) { // Init random colors for cars.
+        randomColor(colors_left[i]);
+        randomColor(colors_right[i]);
+    };
     glutInit( & argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
     glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
