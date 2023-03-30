@@ -8,7 +8,7 @@ A 2D car driving game that uses OpenGL & freeglut library.
 - Copy **freeglut.dll** file from `freeglut/MingGW/freeglut/bin` folder that you downloaded and paste it directly to [System32](https://nerdschalk.com/3-ways-to-open-system-32-folder-on-windows-11-or-10/) and [SysWOW64](https://www.minitool.com/news/syswow64.html) folders.
 - [Download](https://github.com/Carbowix/Driverino/archive/refs/heads/main.zip) or clone the repo. via `git clone https://github.com/Carbowix/Driverino.git`
 
->**NOTE**: This project only works on VSCode and have not been experimented on any other compiling IDE.
+>**Note**: This project only works on VSCode and have not been experimented on any other compiling IDE.
 
 ### Using Visual Studio Code to debug
 - When all the installation steps are done, Open the downloaded repo as a [folder](https://www.youtube.com/watch?v=u3PMR8voOo0) in VSCode.
@@ -28,15 +28,15 @@ If you want a final compiled version of the project. It is recommended to run `R
 ### Screenshots
 - Main menu
 
-<img src="./assets/images/menu.png">
+<img src="./assets/images/menu.png"/>
 
 - Gameplay
 
-<img src="./src/misc/images/gameplay.png">
+<img src="./assets/images/gameplay.png"/>
 
 - Lose screen
 
-<img src="./src/misc/images/lose.png">
+<img src="./assets/images/lose.png"/>
 
 ## Credits
 - Thanks to `Rath Meas` for his freeglut workspace. I don't have his git link anymore for his workspace.
