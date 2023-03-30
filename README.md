@@ -28,15 +28,15 @@ If you want a final compiled version of the project. It is recommended to run `R
 ### Screenshots
 - Main menu
 
-<img src="./assets/images/menu.png"/>
+<img src="./assets/images/menu.PNG"/>
 
 - Gameplay
 
-<img src="./assets/images/gameplay.png"/>
+<img src="./assets/images/gameplay.PNG"/>
 
 - Lose screen
 
-<img src="./assets/images/lose.png"/>
+<img src="./assets/images/lose.PNG"/>
 
 ## Credits
 - Thanks to `Rath Meas` for his freeglut workspace. I don't have his git link anymore for his workspace.
