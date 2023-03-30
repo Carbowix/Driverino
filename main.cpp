@@ -21,18 +21,19 @@ enum gameState {
 void * font1 = GLUT_BITMAP_TIMES_ROMAN_24;
 void * font2 = GLUT_BITMAP_HELVETICA_18;
 void * font3 = GLUT_BITMAP_9_BY_15;
-const char * GameTitle = "Road Rash";
+const char * GameTitle = "Driverino";
 gameState currentState = GAME_MENU;
 int FPS = 60;
 int SCREEN_WIDTH = 800;
 int SCREEN_HEIGHT = 600;
 int currentWindow;
 
-float randomColor (float rgb[3]) {
+float randomColor (float rgb[3]) { // Picks random color for the vehicles
     for (int i = 0; i < 3; i++) 
         rgb[i] = (float)((rand() % 256) * 1) / (float)255;
 }
 
+// Draws 2D text strings on the screen
 void renderBitmapString(float x, float y, void * font,
     const char * string) {
     const char * c;
@@ -42,6 +43,7 @@ void renderBitmapString(float x, float y, void * font,
     }
 };
 
+// Collision detection using 2D box model: https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
 bool collision(float x1, float y1, float w1, float h1,
     float x2, float y2, float w2, float h2) {
     if ((x1 < (x2 + w2)) &&
@@ -54,6 +56,7 @@ bool collision(float x1, float y1, float w1, float h1,
     }
 }
 
+// Renders the tree design in any given x,y pixel coordinates
 void renderTree(int x, int y) {
     // Pine renderTree wood
     glBegin(GL_POLYGON);
@@ -79,6 +82,7 @@ void renderTree(int x, int y) {
     glEnd();
 }
 
+// Renders the car on a given x,y pixel coordinates. "inverted" paramters tells whether the car be drawn opposite side of the road
 void renderCar(float x, float y, int inverted, float rgb[3]) {
     // Car body
     glBegin(GL_POLYGON);
@@ -129,6 +133,7 @@ void renderCar(float x, float y, int inverted, float rgb[3]) {
     glEnd();
 }
 
+// Main menu layout once you start the game.
 void menuDesign(void) {
     glClearColor(0.145, 0.596, 0.854, 0.8); // Blue Sky
     // Ground-design
@@ -225,6 +230,7 @@ float moveOffsetX = 0, left_lane[3], right_lane[2], colors_left[3][3], colors_ri
 const float carWidth = 3.5 * 2, carHeight = 6.5 * 2;
 bool fading = false;
 
+// Ending game by resseting everything
 void endGame() {
     top_lane = mid_lane = bot_lane = score = moveOffsetX = 0;
     memset(left_lane, 0.0, sizeof(left_lane));
@@ -234,6 +240,7 @@ void endGame() {
     fading = true;
 }
 
+// Map design for an average game
 void gameDesign(void) {
     // Ground-Design
     // Grass
@@ -412,6 +419,7 @@ void gameDesign(void) {
     */
 }
 
+// Lost screen with weird music
 void lostDesign() {
     glClearColor(0, 0, 0, 1);
     glColor3f(1.000, 0, 0);
@@ -421,6 +429,7 @@ void lostDesign() {
 }
 
 
+//  game management per frame
 void render() {
     glClear(GL_COLOR_BUFFER_BIT);
     if (fading) {
@@ -454,7 +463,7 @@ void render() {
     glutSwapBuffers();
 };
 
-
+// Controls management
 void gameControls(unsigned char key, int x, int y) {
     switch (key) {
         case 27: // ESC
@@ -513,6 +522,9 @@ void timer(int _) {
     glutTimerFunc(1000 / FPS, timer, 0);
 }
 
+// Main boss to initalize all the functions we talked about previously
+// If you are for some reason need to use that project.
+// i suggest checking out: https://freeglut.sourceforge.net/docs/api.php which tells u each function's responsibility & its parameters
 int main(int argc, char ** argv) {
     for (int i = 0; i < 3; i++) { // Init random colors for cars.
         randomColor(colors_left[i]);
